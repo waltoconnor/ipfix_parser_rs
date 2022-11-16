@@ -19,16 +19,16 @@ Results are stored on a per-packet basis. The structure of the packets is as fol
     - Sequence Number
     - Number of unparseable sets
     - ODID
-    - Vec<Templates>
+    - Vec\<Templates\>
         - ID
-        - Vec<TemplateFields>
+        - Vec\<TemplateFields\>
             - Width (Bytes)
             - Start Byte
             - Enterprise Number
             - Field ID
-    - Vec<DataSet>
+    - Vec\<DataSet\>
         - Template ID
-        - Vec<Fields>
+        - Vec\<Fields\>
             - ID,EN => Data
 
 
