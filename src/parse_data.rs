@@ -25,7 +25,7 @@ impl DataRow {
 
 pub struct DataSet {
     pub id: u16,
-    //pub template: u16,
+    pub template: u16,
     pub fields: Vec<DataRow>
 }
 
@@ -77,7 +77,7 @@ fn read_value_from_byte(i: &[u8], offset: usize, width: u16) -> Result<DataType,
 
 impl DataSet {
     //expects the first byte of i to be the first byte of the data packet set id
-    pub fn get_datasets<'a>(i: &'a [u8], tmp_ring: &TemplateRing) -> Result<(&'a [u8], Vec<Self>), String> {
+    pub fn get_datasets<'a>(i: &'a [u8], tmp_ring: &TemplateRing, odid: u32) -> Result<(&'a [u8], Vec<Self>), String> {
         //take data set header
         let (rest, set_id) = be_u16::<&[u8], VerboseError<&[u8]>>(i)
             .or(Result::Err(String::from("Failed to parse data set set_id")))?;
@@ -87,7 +87,7 @@ impl DataSet {
             .or(Result::Err(String::from("Failed to parse data set len")))?;
 
         //get the template
-        let template = match tmp_ring.get_template(set_id) {
+        let template = match tmp_ring.get_template(set_id, odid) {
             None => { return Result::Err(format!("No template with ID {} in template set", set_id)); },
             Some(t) => t
         };
@@ -100,7 +100,7 @@ impl DataSet {
         while bytes_read < len {
             //multiple "instances" of templates come in each data packet, read one here
             (cur, loop_rest) = loop_rest.split_at(len as usize);
-            let mut ds = DataSet { id: set_id, fields: Vec::new() };
+            let mut ds = DataSet { id: set_id, fields: Vec::new(), template: template.id };
 
             for tmplt_field in template.fields.iter() {
                 let val = read_value_from_byte(cur, tmplt_field.start_byte as usize, tmplt_field.width)?;

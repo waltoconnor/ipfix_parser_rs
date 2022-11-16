@@ -3,6 +3,7 @@ use nom::{number::complete::{be_u16, be_u32}, error::VerboseError};
 #[derive(Clone)]
 pub struct IPFIXTemplate {
     pub id: u16,
+    pub odid: u32,
     pub fields: Vec<IPFIXField>
 }
 
@@ -18,32 +19,32 @@ impl IPFIXTemplate {
 
     //This function wants a set of bytes where the first byte in this string is the first byte of the template id for a given template
     //It will then return the parsed template, plus the first byte that appears after this template (nominally the first byte of the next template's template id)
-    pub fn from(i: &[u8]) -> Result<(&[u8], Self), String> {
+    pub fn from(i: &[u8], odid: u32) -> Result<(&[u8], Self), String> {
         //this can be minimum 4 bytes: template id, field count
         if i.len() < 4 {
             return Result::Err(format!("template packet is below the minimum size ({} bytes found, 4 needed)", i.len()));
         }
 
-        // //get set id
-        // let (rest, set_id) = match be_u16(i) {
-        //     Ok(val) => Result::Ok(val),
-        //     Err(_) => Result::Err(String::from("failed to parse set_id"))
-        // }?;
+        //get set id
+        let (rest, set_id) = match be_u16::<&[u8], VerboseError<&[u8]>>(i) {
+            Ok(val) => Result::Ok(val),
+            Err(_) => Result::Err(String::from("failed to parse set_id"))
+        }?;
 
-        // if set_id != 2 {
-        //     return Result::Err(format!("template packet parser was given bytes that do not appear to be a template packet"))
-        // }
+        if set_id != 2 {
+            return Result::Err(format!("template packet parser was given bytes that do not appear to be a template packet"))
+        }
 
-        // //get set template length
-        // let (rest, len) = match be_u16(rest) {
-        //     Ok(v) => Result::Ok(v),
-        //     Err(_) => Result::Err(String::from("failed to parse template packet length"))
-        // }?;
+        //get set template length
+        let (_rest, len) = match be_u16::<&[u8], VerboseError<&[u8]>>(rest) {
+            Ok(v) => Result::Ok(v),
+            Err(_) => Result::Err(String::from("failed to parse template packet length"))
+        }?;
 
-        // //if there are less bytes in our working array than the packet says it has, the template is incomplete
-        // if i.len() < len as usize {
-        //     return Result::Err(format!("Parsing template packet with set_id: {} failed, needed {} bytes, found {}", set_id, len, i.len()))
-        // }
+        //if there are less bytes in our working array than the packet says it has, the template is incomplete
+        if i.len() < len as usize {
+            return Result::Err(format!("Parsing template packet with set_id: {} failed, needed {} bytes, found {}", set_id, len, i.len()))
+        }
 
         //get template id
         let (rest, template_id) = match be_u16::<&[u8], VerboseError<&[u8]>>(i) {
@@ -61,6 +62,7 @@ impl IPFIXTemplate {
         //make the template with the template id
         let mut template = IPFIXTemplate {
             id: template_id,
+            odid: odid,
             fields: Vec::new()
         };
 
